@@ -528,6 +528,8 @@ $('mp-confirm').onclick=()=>{
   const name=$('mp-name').value||'Herói';
   const session=$('mp-session').value;
   $('mp-overlay').classList.add('hidden');
+  Multiplayer.onConnected=(playerName)=>log(`Jogador ${playerName} entrou na partida`,'#5cb85c');
+  Multiplayer.onDisconnected=(playerName)=>log(`Jogador ${playerName} saiu da partida`,'#d9534f');
   if(mpMode==='join'&&session){
     Multiplayer.joinMatch(name,session,()=>{startGame(false);log('Conectado à sessão '+session,'#5cb85c');},err=>alert(err));
   }else{

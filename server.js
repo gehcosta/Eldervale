@@ -67,7 +67,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
     if (socket.roomId) {
-      socket.to(socket.roomId).emit('playerLeft', { id: socket.id });
+      socket.to(socket.roomId).emit('playerLeft', { id: socket.id, name: socket.playerName });
     }
   });
 });

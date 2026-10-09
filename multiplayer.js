@@ -5,6 +5,7 @@ const Multiplayer = {
   roomId: '',
   remotePlayers: {},
   onConnected: null,
+  onDisconnected: null,
 
   init(serverUrl) {
     if(!this.socket) {
@@ -15,6 +16,7 @@ const Multiplayer = {
       });
 
       this.socket.on('playerLeft', (data) => {
+        if(this.onDisconnected && data.name) this.onDisconnected(data.name);
         delete this.remotePlayers[data.id];
       });
 
