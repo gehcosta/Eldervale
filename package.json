@@ -1,0 +1,27 @@
+{
+  "name": "eldervale",
+  "version": "1.0.0",
+  "description": "RPG original de mundo aberto **isométrico 2.5D**, desenhado em Canvas. Abra [index.html](./index.html), mantendo [campaign.js](./campaign.js) e [world-generator.js](./world-generator.js) na mesma pasta. Continua offline, sem servidor, instalação, CDN ou assets externos. Os arquivos auxiliares organizam campanha e geração procedural.",
+  "main": "campaign.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gehcosta/Eldervale.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/gehcosta/Eldervale/issues"
+  },
+  "homepage": "https://github.com/gehcosta/Eldervale#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "socket.io": "^4.8.4"
+  }
+}
