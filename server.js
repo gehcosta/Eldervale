@@ -64,6 +64,14 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('playerChat', (data) => {
+    if (socket.roomId) {
+      data.id = socket.id;
+      data.name = socket.playerName;
+      socket.to(socket.roomId).emit('playerChat', data);
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
     if (socket.roomId) {

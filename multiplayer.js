@@ -28,6 +28,10 @@ const Multiplayer = {
       this.socket.on('playerSkill', (data) => {
         if(window.handleRemoteSkill) window.handleRemoteSkill(data);
       });
+
+      this.socket.on('playerChat', (data) => {
+        if(window.appendChatMessage) window.appendChatMessage(data.name, data.text, '#d8bb7c');
+      });
     }
   },
 
@@ -73,6 +77,12 @@ const Multiplayer = {
   sendSkill(skillId, x, y, facing) {
     if (this.socket && this.roomId) {
       this.socket.emit('playerSkill', { skill: skillId, x, y, facing });
+    }
+  },
+
+  sendChat(text) {
+    if (this.socket && this.roomId) {
+      this.socket.emit('playerChat', { text });
     }
   }
 };
