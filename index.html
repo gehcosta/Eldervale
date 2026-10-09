@@ -67,9 +67,19 @@
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="multiplayer.js"></script>
 <div class="overlay hidden" id="mp-overlay" style="z-index: 1000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.8);">
-  <div style="background: var(--dark); padding: 20px; border: 1px solid var(--line); border-radius: 5px; text-align: center; width: 300px;">
+  <div style="background: #10272b; padding: 20px; border: 1px solid var(--line); border-radius: 5px; text-align: center; width: 340px;">
     <h3 id="mp-title" style="color: var(--gold); margin-bottom: 15px;">Nova Partida</h3>
-    <input id="mp-name" type="text" placeholder="Seu nome" style="width: 100%; margin-bottom: 10px; padding: 8px; background: #132a28; color: var(--light); border: 1px solid var(--line); border-radius: 4px;" maxlength="15">
+    <input id="mp-name" type="text" placeholder="Seu nome" style="width: 100%; margin-bottom: 15px; padding: 8px; background: #132a28; color: var(--light); border: 1px solid var(--line); border-radius: 4px;" maxlength="15">
+    <div style="margin-bottom: 20px;">
+      <div class="eyebrow" style="color: var(--muted); margin-bottom: 8px;">Escolha seu visual</div>
+      <div id="skin-carousel" style="display: flex; gap: 8px; overflow-x: auto; padding: 5px; justify-content: center;">
+        <button class="skin-card active" data-color="#326c66" style="flex: 0 0 50px; height: 60px; background: #326c66; border: 2px solid var(--gold); border-radius: 6px;"></button>
+        <button class="skin-card" data-color="#716a9b" style="flex: 0 0 50px; height: 60px; background: #716a9b; border: 1px solid var(--line); border-radius: 6px;"></button>
+        <button class="skin-card" data-color="#788e98" style="flex: 0 0 50px; height: 60px; background: #788e98; border: 1px solid var(--line); border-radius: 6px;"></button>
+        <button class="skin-card" data-color="#b85f55" style="flex: 0 0 50px; height: 60px; background: #b85f55; border: 1px solid var(--line); border-radius: 6px;"></button>
+        <button class="skin-card" data-color="#80624a" style="flex: 0 0 50px; height: 60px; background: #80624a; border: 1px solid var(--line); border-radius: 6px;"></button>
+      </div>
+    </div>
     <input id="mp-session" type="text" placeholder="ID da Sessão" style="width: 100%; margin-bottom: 15px; padding: 8px; background: #132a28; color: var(--light); border: 1px solid var(--line); border-radius: 4px; display: none;">
     <div style="display: flex; gap: 10px; justify-content: center;">
       <button class="primary" id="mp-confirm">Confirmar</button>
@@ -136,7 +146,7 @@ function normalizeSave(data){
  for(const slot of ['weapon','armor','shield']){const id=source.equipment?.[slot],fallback=p.equipment[slot];p.equipment[slot]=ITEMS[id]?.slot===slot&&p.inventory.includes(id)?id:p.inventory.find(owned=>ITEMS[owned].slot===slot)||fallback;if(!p.inventory.includes(p.equipment[slot]))p.inventory.push(p.equipment[slot]);}
  p.x=Number.isFinite(source.x)?clamp(source.x,2,SIZE-3):25;p.y=Number.isFinite(source.y)?clamp(source.y,2,SIZE-3):29;
  if(source.checkpoint&&Number.isFinite(source.checkpoint.x)&&Number.isFinite(source.checkpoint.y))p.checkpoint={x:clamp(source.checkpoint.x,2,SIZE-3),y:clamp(source.checkpoint.y,2,SIZE-3)};
- const q=source.quests||{};p.quests={slimes:integer(q.slimes,0,4,0),goblins:integer(q.goblins,0,3,0),dragon:integer(q.dragon,0,1,0),accepted:q.accepted===true,wardReward:q.wardReward===true,finalReward:q.finalReward===true};
+ const q=source.quests||{};p.skinColor=source.skinColor||'#326c66';p.quests={slimes:integer(q.slimes,0,4,0),goblins:integer(q.goblins,0,3,0),dragon:integer(q.dragon,0,1,0),accepted:q.accepted===true,wardReward:q.wardReward===true,finalReward:q.finalReward===true};
  if(p.quests.dragon===1){p.quests.slimes=4;p.quests.goblins=3;p.quests.wardReward=true;}if(!p.quests.dragon)p.quests.finalReward=false;
  p.chests=Array.isArray(source.chests)?source.chests.filter(id=>typeof id==='string'&&/^chest-[0-4]$/.test(id)).slice(0,5):[];
  for(const id of Object.keys(Campaign.MATERIALS))p.materials[id]=integer(source.materials?.[id],0,999,0);
@@ -271,7 +281,7 @@ function drawProp(prop){
 function drawHuman(entity,isPlayer){
  const isRemote=entity.kind==='remote_player',eq=isPlayer?player.equipment:(isRemote?entity.equipment:null),p=screenPoint(entity.x,entity.y),walk=isPlayer?player.walkTime:(isRemote?(entity.walkTime||elapsed*.4):elapsed*.4),isM=isPlayer?player.isMoving:(isRemote?entity.isMoving:false),bob=isM?Math.sin(walk*12)*2:Math.sin(elapsed*2+entity.x)*.7;ctx.save();ctx.translate(p.x,p.y+bob);
  const dt=isPlayer?player.dodgeTime:(isRemote?(entity.dodgeTime||0):0);if(dt>0)ctx.globalAlpha=.55;ellipse(ctx,0,0,14,6,'#03192065');
- const armorColors={leather:'#326c66',chainmail:'#788e98',mysticRobe:'#716a9b',dragonArmor:'#759466'},cloak=eq?armorColors[eq.armor]:entity.color;polygon(ctx,[[-7,-31],[7,-31],[12,-8],[0,-2],[-12,-8]],cloak||entity.color,'#193c3a');polygon(ctx,[[0,-30],[7,-28],[12,-8],[0,-2]],eq?'#214c53':'#355e51');
+ const armorColors={leather:'#326c66',chainmail:'#788e98',mysticRobe:'#716a9b',dragonArmor:'#759466'},cloak=entity.skinColor||(eq?armorColors[eq.armor]:entity.color);polygon(ctx,[[-7,-31],[7,-31],[12,-8],[0,-2],[-12,-8]],cloak||entity.color,'#193c3a');polygon(ctx,[[0,-30],[7,-28],[12,-8],[0,-2]],eq?'#214c53':'#355e51');
  ctx.strokeStyle='#213b36';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-4,-10);ctx.lineTo(-5+Math.sin(walk*12)*(isM?4:0),-1);ctx.moveTo(4,-10);ctx.lineTo(5-Math.sin(walk*12)*(isM?4:0),-1);ctx.stroke();
  ellipse(ctx,0,-34,7,8,'#e2c8a0');ellipse(ctx,0,-40,8,5,eq?'#3c5645':'#534e39');polygon(ctx,[[-8,-40],[0,-47],[8,-40],[7,-34],[0,-37],[-7,-34]],eq?'#526957':'#607665');ctx.fillStyle='#303e37';ctx.fillRect(1,-36,2,2);ctx.fillStyle='#d0bb77';ctx.fillRect(-7,-21,14,3);
  if(eq){const item=ITEMS[eq.weapon]||ITEMS['bronzeSword'],isStaff=item.icon==='✹',color=item.rarity==='legendary'?'#e4c878':item.rarity==='rare'?'#afdef0':'#c3d4c4';let sx=15,sy=-18;const at=isPlayer?player.attackTime:(isRemote?(entity.attackTime||0):0);if(at>0){sx+=Math.sin(at*20)*18;sy-=Math.cos(at*20)*12;}
@@ -407,7 +417,7 @@ function update(dt){
  projectiles=projectiles.filter(s=>s.life>0&&s.x>0&&s.x<SIZE&&s.y>0&&s.y<SIZE);
   generationClock+=dt;if(generationClock>.5){generationClock=0;if(ensureNearbyRegions())saveGame(false);}reveal();if(waypoint&&distance(player,waypoint)<1){waypoint=null;toast('Destino alcançado.');}setZone(resolveZone());if(noticeTimer>0){noticeTimer-=dt;if(noticeTimer<=0)$('zone-notice').classList.remove('show');}if(locationTimer>0){locationTimer-=dt;if(locationTimer<=0)$('hud').classList.remove('show-location');}
   if(window.Multiplayer && window.Multiplayer.socket && window.Multiplayer.roomId) {
-   window.Multiplayer.sendUpdate({x:player.x,y:player.y,facing:player.facing,isMoving:player.isMoving,hitTime:player.hitTime,attackTime:player.attackTime,dodgeTime:player.dodgeTime,walkTime:player.walkTime,equipment:player.equipment,level:player.level,stats:stats,talents:player.talents});
+   window.Multiplayer.sendUpdate({x:player.x,y:player.y,facing:player.facing,isMoving:player.isMoving,hitTime:player.hitTime,attackTime:player.attackTime,dodgeTime:player.dodgeTime,walkTime:player.walkTime,equipment:player.equipment,level:player.level,stats:stats,talents:player.talents,skinColor:player.skinColor});
   }
   findInteraction();saveClock+=dt;if(saveClock>20){saveClock=0;saveGame(false);}ambienceClock+=dt;if(ambienceClock>8&&isAudioEnabled){ambienceClock=0;playSound('heal');}
 }
@@ -528,16 +538,23 @@ $('join-game').onclick=()=>{
   $('mp-overlay').classList.remove('hidden');
 };
 $('mp-cancel').onclick=()=>$('mp-overlay').classList.add('hidden');
+document.querySelectorAll('.skin-card').forEach(card=>{
+  card.onclick=()=>{
+    document.querySelectorAll('.skin-card').forEach(c=>{c.style.border='1px solid var(--line)';c.classList.remove('active');});
+    card.style.border='2px solid var(--gold)';card.classList.add('active');
+  };
+});
 $('mp-confirm').onclick=()=>{
   const name=$('mp-name').value||'Herói';
   const session=$('mp-session').value;
+  const selectedSkin=document.querySelector('.skin-card.active')?.dataset.color||'#326c66';
   $('mp-overlay').classList.add('hidden');
   Multiplayer.onConnected=(playerName)=>log(`Jogador ${playerName} entrou na partida`,'#5cb85c');
   Multiplayer.onDisconnected=(playerName)=>log(`Jogador ${playerName} saiu da partida`,'#d9534f');
   if(mpMode==='join'&&session){
-    Multiplayer.joinMatch(name,session,()=>{startGame(false);log('Conectado à sessão '+session,'#5cb85c');},err=>alert(err));
+    Multiplayer.joinMatch(name,session,()=>{startGame(false);player.skinColor=selectedSkin;saveGame(false);log('Conectado à sessão '+session,'#5cb85c');},err=>alert(err));
   }else{
-    Multiplayer.initHost(name,(roomId)=>{startGame(false);$('session-id-label').textContent='SESSÃO: '+roomId;log('Sala criada! ID: '+roomId,'#5cb85c');});
+    Multiplayer.initHost(name,(roomId)=>{startGame(false);player.skinColor=selectedSkin;saveGame(false);$('session-id-label').textContent='SESSÃO: '+roomId;log('Sala criada! ID: '+roomId,'#5cb85c');});
   }
 };
 $('continue-game').onclick=()=>startGame(true);$('continue-game').disabled=!readSave();$('close-panel').onclick=closePanel;$('quest-open').onclick=()=>openPanel('quests');$('audio-button').onclick=toggleAudio;$('minimap').onclick=()=>openPanel('map');$('minimap').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPanel('map');}};document.querySelectorAll('[data-panel]').forEach(button=>button.onclick=()=>openPanel(button.dataset.panel));document.querySelectorAll('[data-skill]').forEach(button=>button.onclick=()=>{pointer.isAim=false;useSkill(button.dataset.skill);});$('panel-overlay').onclick=e=>{if(e.target===$('panel-overlay'))closePanel();};
