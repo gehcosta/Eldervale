@@ -21,7 +21,7 @@
    <div class="bar"><div id="stamina-fill" class="fill stamina"></div></div>
   </div><div class="profile-foot"><span id="xp-label"></span><div class="bar"><div id="xp-fill" class="fill xp"></div></div><span id="points-label"></span></div>
  </section>
- <div class="location"><div class="eyebrow">Terras de Eldervale</div><h2 id="location-label">Vila de Willowmere</h2><div class="small muted" id="time-label">07:00 · manhã</div></div>
+ <div class="location"><div class="eyebrow">Terras de Eldervale</div><h2 id="location-label">Vila de Willowmere</h2><div class="small muted" id="time-label">07:00 · manhã</div><div class="eyebrow gold" id="session-id-label" style="margin-top:4px;"></div></div>
  <section class="minimap-shell glass"><div class="minimap-head"><span>EXPLORAR</span><span>N ↑</span></div><canvas id="minimap" class="interactive" width="192" height="192" role="button" tabindex="0" aria-label="Abrir mapa do mundo"></canvas><div class="minimap-foot"><span id="coords-label">25 · 29</span><span>M · mapa</span></div></section>
  <section class="quest-tracker"><div class="eyebrow">Jornada principal</div><h3 id="quest-title">O vale pede ajuda</h3><div id="quest-objectives"></div><button id="quest-open" style="background:none;border:0;padding:4px 0;font-size:9px;color:var(--gold)">L · abrir missões →</button></section>
  <div class="boss-bar hidden" id="boss-bar"><div class="eyebrow">O último guardião das cinzas</div><div>Vyrath, o Dragão Esmeralda</div><div class="bar"><div class="fill health" id="boss-fill"></div></div></div>
@@ -51,7 +51,7 @@
  <div class="title-content"><div class="brand"><div class="brand-mark"><span>♧</span></div><div><div class="eyebrow">Uma aventura original</div><div class="small muted">UM VALE VIVO. INFINITAS HISTÓRIAS.</div></div></div>
  <h1>Eldervale</h1><p class="subtitle">O despertar da floresta</p><p class="intro">Além das muralhas de Willowmere, a floresta guarda um segredo antigo. Empunhe sua lâmina, desperte sua magia e escreva a próxima história do vale.</p>
  <div style="margin-top:22px;display:flex;align-items:center;gap:10px"><label class="eyebrow" for="world-seed">Seed do mundo</label><input id="world-seed" maxlength="40" placeholder="Aleatória · ou escreva sua seed" style="background:#132a28;color:var(--light);border:1px solid var(--line);border-radius:5px;padding:8px 12px;width:220px;font:11px system-ui"></div>
- <div class="title-actions"><button class="primary" id="new-game">Iniciar aventura <span style="margin-left:18px">→</span></button><button class="secondary" id="continue-game" disabled>Continuar jornada</button></div>
+ <div class="title-actions"><button class="primary" id="new-game">Iniciar aventura <span style="margin-left:18px">→</span></button><button class="secondary" id="join-game" style="margin-left:10px">Entrar em partida</button><button class="secondary" id="continue-game" disabled>Continuar jornada</button></div>
  <div class="features"><span><b>✦</b> Mundo procedural</span><span><b>♧</b> 5 capítulos</span><span><b>◈</b> 100% offline</span></div></div>
  <div class="title-note">WASD / SETAS · EXPLORAR &nbsp; | &nbsp; CLIQUE · ATACAR &nbsp; | &nbsp; E · INTERAGIR</div><div class="world-note">WILLOWMERE — A FRONTEIRA DO DESCONHECIDO</div>
 </div>
@@ -60,6 +60,19 @@
 <input id="import-save-input" type="file" accept=".json,application/json" class="hidden" aria-label="Importar save de Eldervale">
 <script src="campaign.js"></script>
 <script src="world-generator.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="multiplayer.js"></script>
+<div class="overlay hidden" id="mp-overlay" style="z-index: 1000; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.8);">
+  <div style="background: var(--dark); padding: 20px; border: 1px solid var(--line); border-radius: 5px; text-align: center; width: 300px;">
+    <h3 id="mp-title" style="color: var(--gold); margin-bottom: 15px;">Nova Partida</h3>
+    <input id="mp-name" type="text" placeholder="Seu nome" style="width: 100%; margin-bottom: 10px; padding: 8px; background: #132a28; color: var(--light); border: 1px solid var(--line); border-radius: 4px;" maxlength="15">
+    <input id="mp-session" type="text" placeholder="ID da Sessão" style="width: 100%; margin-bottom: 15px; padding: 8px; background: #132a28; color: var(--light); border: 1px solid var(--line); border-radius: 4px; display: none;">
+    <div style="display: flex; gap: 10px; justify-content: center;">
+      <button class="primary" id="mp-confirm">Confirmar</button>
+      <button class="secondary" id="mp-cancel">Cancelar</button>
+    </div>
+  </div>
+</div>
 <script>
 'use strict';
 (() => {
@@ -290,7 +303,9 @@ function render(){
  for(const prop of props){const p=screenPoint(prop.x,prop.y);if(p.x>-160&&p.x<width+160&&p.y>-90&&p.y<height+210)visible.push({depth:prop.x+prop.y,kind:'prop',entity:prop});}
  for(const npc of npcs)visible.push({depth:npc.x+npc.y,kind:'npc',entity:npc});
  for(const enemy of enemies)if(enemy.alive){const p=screenPoint(enemy.x,enemy.y);if(p.x>-160&&p.x<width+160&&p.y>-120&&p.y<height+150)visible.push({depth:enemy.x+enemy.y,kind:'enemy',entity:enemy});}
- visible.push({depth:player.x+player.y,kind:'player',entity:player});visible.sort((a,b)=>a.depth-b.depth);
+ visible.push({depth:player.x+player.y,kind:'player',entity:player});
+ if(window.Multiplayer && window.Multiplayer.remotePlayers){for(let k in window.Multiplayer.remotePlayers){const rp=window.Multiplayer.remotePlayers[k];visible.push({depth:rp.x+rp.y,kind:'remote_player',entity:rp});}}
+ visible.sort((a,b)=>a.depth-b.depth);
  for(const item of visible){if(item.kind==='building')drawBuilding(item.entity);else if(item.kind==='prop')drawProp(item.entity);else if(item.kind==='enemy')drawEnemy(item.entity);else drawHuman(item.entity,item.kind==='player');}
  for(const projectile of projectiles){const p=screenPoint(projectile.x,projectile.y,17);ellipse(ctx,p.x,p.y,projectile.kind==='fire'?8:6,projectile.kind==='fire'?6:5,projectile.kind==='fire'?'#f3ca8c':'#a6d38f');ellipse(ctx,p.x,p.y,13,10,'#ffc67825');}
  for(const part of particles){const p=screenPoint(part.x,part.y,part.z);ctx.globalAlpha=clamp(part.life/part.maxLife,0,1);ellipse(ctx,p.x,p.y,part.size,part.size*.8,part.color);}ctx.globalAlpha=1;
@@ -377,8 +392,11 @@ function update(dt){
  updateEnemies(dt);
  for(const shot of projectiles){shot.life-=dt;shot.x+=shot.dx*shot.speed*dt;shot.y+=shot.dy*shot.speed*dt;if(shot.kind==='fire'){for(const enemy of enemies)if(enemy.alive&&distance(enemy,shot)<(enemy.type==='dragon'?1.7:.65)){hitEnemy(enemy,shot.damage,true);addEffect('ring',shot.x,shot.y,1.2,'#edc88c',.4);shot.life=0;break;}if(Math.random()<.7)particles.push({x:shot.x,y:shot.y,z:17,vx:0,vy:0,vz:10,size:2,life:.25,maxLife:.3,color:'#eac59c'});}}
  projectiles=projectiles.filter(s=>s.life>0&&s.x>0&&s.x<SIZE&&s.y>0&&s.y<SIZE);
- generationClock+=dt;if(generationClock>.5){generationClock=0;if(ensureNearbyRegions())saveGame(false);}reveal();if(waypoint&&distance(player,waypoint)<1){waypoint=null;toast('Destino alcançado.');}setZone(resolveZone());if(noticeTimer>0){noticeTimer-=dt;if(noticeTimer<=0)$('zone-notice').classList.remove('show');}
- findInteraction();saveClock+=dt;if(saveClock>20){saveClock=0;saveGame(false);}ambienceClock+=dt;if(ambienceClock>8&&isAudioEnabled){ambienceClock=0;playSound('heal');}
+  generationClock+=dt;if(generationClock>.5){generationClock=0;if(ensureNearbyRegions())saveGame(false);}reveal();if(waypoint&&distance(player,waypoint)<1){waypoint=null;toast('Destino alcançado.');}setZone(resolveZone());if(noticeTimer>0){noticeTimer-=dt;if(noticeTimer<=0)$('zone-notice').classList.remove('show');}
+  if(window.Multiplayer && window.Multiplayer.socket && window.Multiplayer.roomId) {
+   window.Multiplayer.sendUpdate({x:player.x,y:player.y,facing:player.facing,isMoving:player.isMoving,hitTime:player.hitTime,attackTime:player.attackTime,dodgeTime:player.dodgeTime});
+  }
+  findInteraction();saveClock+=dt;if(saveClock>20){saveClock=0;saveGame(false);}ambienceClock+=dt;if(ambienceClock>8&&isAudioEnabled){ambienceClock=0;playSound('heal');}
 }
 function findInteraction(){
  const candidates=[...npcs,...props.filter(p=>['shrine','sign','site-entry'].includes(p.kind)||(p.kind==='chest'&&!player.chests.includes(p.id))||(p.kind==='resource'&&!worldState.harvested.includes(p.id)))].filter(p=>distance(p,player)<2.2).sort((a,b)=>distance(a,player)-distance(b,player));nearest=candidates[0]||null;
@@ -475,7 +493,37 @@ function runDomainTests(){
 }
 function frame(now){const dt=Math.min(.1,(now-lastFrame)/1000||.016);lastFrame=now;if(document.visibilityState!=='hidden'){update(dt);const target=project(player.x,player.y);camera.x=lerp(camera.x,target.x,1-Math.exp(-dt*7));camera.y=lerp(camera.y,target.y-12,1-Math.exp(-dt*7));render();if(started){hudClock+=dt;mapClock+=dt;if(hudClock>.1){hudClock=0;refreshHud();}if(mapClock>.35){mapClock=0;drawMap(mini,192,192);}}}requestAnimationFrame(frame);}
 $('import-save-input').onchange=e=>readImportedSave(e.target.files[0]);
-$('new-game').onclick=()=>{if(readSave()){const confirm=document.createElement('div');confirm.className='toast';confirm.style.pointerEvents='auto';confirm.innerHTML='<div>Uma nova aventura substitui o save local.</div><div style="display:flex;gap:8px;justify-content:center;margin-top:8px"><button id="confirm-new" style="padding:5px 12px">Começar nova</button><button id="cancel-new" style="padding:5px 12px">Cancelar</button></div>';$('toasts').replaceChildren(confirm);$('confirm-new').onclick=()=>{confirm.remove();startGame(false);};$('cancel-new').onclick=()=>confirm.remove();}else startGame(false);};
+let mpMode = '';
+$('new-game').onclick=()=>{
+  const startMp = () => {
+    mpMode = 'host';
+    $('mp-title').textContent = 'Criar Partida';
+    $('mp-session').style.display = 'none';
+    $('mp-overlay').classList.remove('hidden');
+  };
+  if(readSave()){
+    const confirm=document.createElement('div');confirm.className='toast';confirm.style.pointerEvents='auto';confirm.innerHTML='<div>Uma nova aventura substitui o save local.</div><div style="display:flex;gap:8px;justify-content:center;margin-top:8px"><button id="confirm-new" style="padding:5px 12px">Começar nova</button><button id="cancel-new" style="padding:5px 12px">Cancelar</button></div>';$('toasts').replaceChildren(confirm);
+    $('confirm-new').onclick=()=>{confirm.remove();startMp();};
+    $('cancel-new').onclick=()=>confirm.remove();
+  }else startMp();
+};
+$('join-game').onclick=()=>{
+  mpMode = 'join';
+  $('mp-title').textContent = 'Entrar em Partida';
+  $('mp-session').style.display = 'block';
+  $('mp-overlay').classList.remove('hidden');
+};
+$('mp-cancel').onclick=()=>$('mp-overlay').classList.add('hidden');
+$('mp-confirm').onclick=()=>{
+  const name=$('mp-name').value||'Herói';
+  const session=$('mp-session').value;
+  $('mp-overlay').classList.add('hidden');
+  if(mpMode==='join'&&session){
+    Multiplayer.joinMatch(name,session,()=>{startGame(false);log('Conectado à sessão '+session,'#5cb85c');},err=>alert(err));
+  }else{
+    Multiplayer.initHost(name,(roomId)=>{startGame(false);$('session-id-label').textContent='SESSÃO: '+roomId;log('Sala criada! ID: '+roomId,'#5cb85c');});
+  }
+};
 $('continue-game').onclick=()=>startGame(true);$('continue-game').disabled=!readSave();$('close-panel').onclick=closePanel;$('quest-open').onclick=()=>openPanel('quests');$('audio-button').onclick=toggleAudio;$('minimap').onclick=()=>openPanel('map');$('minimap').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPanel('map');}};document.querySelectorAll('[data-panel]').forEach(button=>button.onclick=()=>openPanel(button.dataset.panel));document.querySelectorAll('[data-skill]').forEach(button=>button.onclick=()=>{pointer.isAim=false;useSkill(button.dataset.skill);});$('panel-overlay').onclick=e=>{if(e.target===$('panel-overlay'))closePanel();};
  window.addEventListener('keydown',e=>{
  const key=e.key.toLowerCase();if([' ','arrowup','arrowdown','arrowleft','arrowright','tab'].includes(key)&&started)e.preventDefault();
