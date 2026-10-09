@@ -13,9 +13,9 @@
   {id:'camp-0',x:63,y:38,w:3.2,h:2.3,kind:'camp',name:'Acampamento dos Batedores',description:'Mapas amarelados revelam os caminhos das expedições além da fronteira.',material:'wood',amount:3},
   {id:'library-0',x:32,y:20,w:2.4,h:2.3,kind:'library',name:'Arquivo da Aurora',description:'Nara decifra a história do vale: três nascentes alimentavam o pacto. Sua luz está enfraquecendo.',material:'crystal',amount:1}
  ]);
- function roadAt(x,y){
+ function roadAt(x,y,seed=0){
   if(x<96&&y<96)return (Math.abs(y-29)<.85&&x>28)||(Math.abs(x-65)<.85&&y>29&&y<59)||(Math.abs(y-57)<.85&&x>47)||(y>16&&y<29&&Math.abs(x-(65+(29-y)*.92))<.9)||(Math.abs(x-35)<.85&&y>29&&y<40)||(Math.abs(y-43)<.85&&x>16&&x<36)||(Math.abs(x-37)<.85&&y>39&&y<48)||(Math.abs(y-44)<.85&&x>37&&x<66)||(Math.abs(x-17)<.85&&y>29&&y<44);
-  const lx=(x+REGION)%REGION,ly=(y+REGION)%REGION;return Math.abs(lx-12)<1||Math.abs(ly-12)<1||(Math.abs(lx-8)<1&&ly>9&&ly<13)||(Math.abs(y-29)<1&&x<110)||(Math.abs(x-65)<1&&y<110);
+  const dx=noise(x*.06,y*.06,seed+10)*8-4; const dy=noise(x*.06,y*.06,seed+11)*8-4; const lx=(x+dx+REGION)%REGION,ly=(y+dy+REGION)%REGION; return Math.abs(lx-12)<1.5||Math.abs(ly-12)<1.5||(Math.abs(lx-8)<1&&ly>9&&ly<13)||(Math.abs(y-29)<1&&x<110)||(Math.abs(x-65)<1&&y<110);
  }
  function terrainAt(x,y,seed=0){
   if(!Number.isFinite(x)||!Number.isFinite(y)||x<0||y<0||x>=SIZE||y>=SIZE)return 'void';
@@ -23,12 +23,12 @@
   if(Math.abs(x-river)<1.6){const crossing=(y>=27&&y<=31)||(y>=56&&y<=59)||(y>=42&&y<=46)||(y>=95&&Math.abs((y+REGION)%REGION-12)<1.7);return crossing?'bridge':'water';}
   if(Math.hypot(x-77,y-16)<9)return noise(x*.17,y*.17,seed)>.45?'ash':'dark';
   if(Math.hypot(x-25,y-29)<11){if(Math.abs(y-29)<1.5||Math.abs(x-25)<1.3||Math.hypot(x-25,y-29)<3.5)return 'paving';return 'meadow';}
-  if(roadAt(x,y))return 'path';
+  if(roadAt(x,y,seed))return 'path';
   const n=noise(x*.095,y*.095,seed);return n>.68?'meadow':n<.3?'dark':'grass';
  }
  function createState(seed=0){return {version:1,seed:normalizeSeed(seed),generated:[],harvested:[],visited:[],looted:[]};}
  const validRegion=id=>typeof id==='string'&&/^[0-7],[0-7]$/.test(id);
- const validObject=id=>typeof id==='string'&&id.length<80&&/^(?:resource-\d+-\d+-\d+|site-\d+-\d+|(?:mine|sawmill|mill|watchtower|temple|camp|library)-0)$/.test(id);
+ const validObject=id=>typeof id==='string'&&id.length<80&&/^(?:resource-\d+-\d+-\d+|site-\d+-\d+|(?:mine|sawmill|mill|watchtower|temple|camp|library|observatory|house|tavern|blacksmith|farm)-0)$/.test(id);
  function normalizeState(source){const state=createState(source?.seed??0);if(source&&source.version!==1)return state;for(const key of ['generated','harvested','visited','looted'])if(Array.isArray(source?.[key]))state[key]=[...new Set(source[key].filter(key==='generated'?validRegion:validObject))].slice(0,key==='generated'?64:3000);return state;}
  function regionId(x,y){return clampRegion(Math.floor(x/REGION))+','+clampRegion(Math.floor(y/REGION));}
  const clampRegion=n=>Math.max(0,Math.min(7,n));
@@ -36,7 +36,7 @@
  function generateRegion(seed,rx,ry){
   if(!Number.isInteger(rx)||!Number.isInteger(ry)||rx<0||ry<0||rx>7||ry>7)return null;
   seed=normalizeSeed(seed);const id=rx+','+ry,frontier=rx>=4||ry>=4,result={id,props:[],resources:[],sites:[],enemies:[]},ox=rx*REGION,oy=ry*REGION,salt=seed+rx*97+ry*211;
-  if(frontier){const kinds=['mine','sawmill','mill','watchtower','temple','camp','observatory'],kind=kinds[Math.floor(hash(rx,ry,salt)*kinds.length)],center={x:ox+8,y:oy+8};result.sites.push({id:'site-'+rx+'-'+ry,...center,w:3.2,h:2.6,kind,name:({mine:'Mina',sawmill:'Serraria',mill:'Moinho',watchtower:'Torre',temple:'Santuário',camp:'Acampamento',observatory:'Observatório'})[kind]+' da Fronteira '+(ry*8+rx+1),description:'Uma construção esquecida revela novas pistas sobre as expedições do vale. Explore para recuperar seus suprimentos.',material:kind==='mine'?'ore':kind==='sawmill'?'wood':kind==='temple'||kind==='observatory'?'crystal':'herb',amount:3+Math.floor(hash(rx,ry,seed)*3)});
+  if(frontier){const kinds=['mine','sawmill','mill','watchtower','temple','camp','observatory','house','tavern','blacksmith','farm'],kind=kinds[Math.floor(hash(rx,ry,salt)*kinds.length)],center={x:ox+8,y:oy+8};result.sites.push({id:'site-'+rx+'-'+ry,...center,w:3.2,h:2.6,kind,name:({mine:'Mina',sawmill:'Serraria',mill:'Moinho',watchtower:'Torre',temple:'Santuário',camp:'Acampamento',observatory:'Observatório',house:'Casa Abandonada',tavern:'Taverna Velha',blacksmith:'Forja Arruinada',farm:'Fazenda'})[kind]+' da Fronteira '+(ry*8+rx+1),description:'Uma construção esquecida revela novas pistas sobre as expedições do vale. Explore para recuperar seus suprimentos.',material:(kind==='mine'||kind==='blacksmith')?'ore':(kind==='sawmill'||kind==='house'||kind==='tavern'||kind==='farm')?'wood':(kind==='temple'||kind==='observatory')?'crystal':'herb',amount:3+Math.floor(hash(rx,ry,seed)*3)});
    for(let i=0;i<26;i++){const x=ox+2+hash(i,rx,salt)*20,y=oy+2+hash(ry,i,salt+3)*20;if(['water','bridge','path'].includes(terrainAt(x,y,seed))||result.sites.some(b=>inBuilding(x,y,b,3)))continue;result.props.push({x,y,kind:hash(i,ry,salt+8)>.2?'tree':'rock',scale:.7+hash(i,rx,salt+9)*.7,variant:hash(i,ry,salt+10),solid:true,radius:.35});}
    for(let i=0;i<3;i++){const x=ox+11+i*3,y=oy+15;if(terrainAt(x,y,seed)!=='water')result.enemies.push({id:1000+ry*100+rx*10+i,type:hash(rx,i,salt)>.5?'goblin':'slime',x,y});}
   }
